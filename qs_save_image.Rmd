@@ -1,0 +1,177 @@
+---
+title: Disk Benchmarks - qsave
+output: html_document
+---
+
+## Simulate the user's environment
+
+Data set creation function
+
+```{r make_df}
+make_df <- function(nrow, ncol) {
+  cbind(
+    as.data.frame(matrix(
+      runif(nrow * ncol), nrow = nrow, ncol = ncol
+    )),
+    rep(
+      'THIS IS A VERY LONG TEXT STRING TO TEST A THEORY ABOUT THE STRING CACHE THIS IS A VERY LONG TEXT STRING TO TEST A THEORY ABOUT THE STRING CACHE',
+      nrow
+    ),
+    rep(
+      'THIS IS A DIFFERENT VERY LONG TEXT STRING TO TEST A THEORY ABOUT THE STRING CACHE THIS IS A VERY LONG TEXT STRING TO TEST A THEORY ABOUT THE STRING CACHE',
+      nrow
+    )
+    
+  )
+  
+}
+```
+
+
+Figure out how much data to create
+
+```{r calc_rows}
+# This will give us a data set of about 103G when saved
+rows_needed <- round(500 * 1024 * 1024 / (8001904 / 100000) * 2.5)
+```
+
+Create the data
+
+```{r create_data}
+local({
+  df <- make_df(nrow = rows_needed, ncol = 3)
+  
+  for (i in 1:20) {
+    assign(paste0("df", i), df, envir = parent.env(environment()))
+  }
+})
+```
+
+How big is each dataframe in memory?
+
+```{r df_size}
+object.size(df1) / 1e6
+lobstr::obj_size(df1) / 1e6
+ls()
+```
+
+
+## Session save with the qs package
+
+qs uses a facebook designed compression algorithm and a multi-threaded design.
+
+Here we parallelise across half the available cores.
+
+### EFS
+
+```{r efs_write}
+ls()
+library(qs)
+filename <- "/home/efs-mount/mark/session_efs.qs"
+if (file.exists(filename)){
+  unlink(filename)
+}
+Sys.time()
+system.time(
+  do.call(qs::qsavem, c(lapply(ls(), as.symbol), file = filename, nthreads = parallel::detectCores()/2))
+)
+Sys.time()
+round(file.size(filename)/(1024*1024*1024), 1) # to get bytes to GBytes
+```
+
+### EBS
+
+```{r ebs_write}
+filename <- "/ebs-local/session_ebs.qs"
+if (file.exists(filename)){
+  unlink(filename)
+}
+Sys.time()
+system.time(
+  do.call(qs::qsavem, c(lapply(ls(), as.symbol), file = filename, nthreads = parallel::detectCores()/2))
+)
+Sys.time()
+round(file.size(filename)/(1024*1024*1024), 1) # to get bytes to GBytes
+```
+
+## Session restore with qs
+
+### EFS
+
+```{r efs_restore}
+rm(list = ls())
+filename <- "/home/efs-mount/mark/session_efs.qs"
+Sys.time()
+system.time(qload(filename, nthreads = parallel::detectCores()/2))
+Sys.time()
+```
+
+Check that everything has loaded properly
+
+```{r efs_clean}
+lobstr::obj_size(df1) / 1e6
+ls()
+unlink(filename)
+```
+
+### EBS
+
+```{r ebs_restore}
+rm(list = ls())
+filename <- "/ebs-local/session_ebs.qs"
+Sys.time()
+system.time(qload(filename, nthreads = parallel::detectCores()/2))
+Sys.time()
+```
+
+Check that everything has loaded properly
+
+```{r ebs_clean}
+lobstr::obj_size(df1) / 1e6
+ls()
+unlink(filename)
+```
+
+
+EFS. Benchmarking functions
+
+```{r efs_write}
+library(qs)
+filename <- "/home/efs-mount/mark/session_efs.qs"
+qs_session_save <- function(filename){
+  
+  if (file.exists(filename)){
+    unlink(filename)
+  }
+  do.call(qs::qsavem, c(lapply(ls(), as.symbol), file = filename, nthreads = parallel::detectCores()/2))
+}
+
+
+qs_session_restore <- function(filename){
+  qload(filename, nthreads = parallel::detectCores()/2)
+}
+```
+
+## Test save
+
+```{r qs_session_save}
+bench::mark(qs_session_save("/home/efs-mount/mark/session_efs.qs"), iterations = 10)
+bench::mark(qs_session_save("/ebs-local/session_ebs.qs"), iterations = 10)
+```
+
+```{r qs_session_save_time}
+system.time(qs_session_save("/home/efs-mount/mark/session_efs.qs"))
+system.time(qs_session_save("/ebs-local/session_ebs.qs"))
+```
+
+## Test restore
+
+```{r qs_session_save}
+system.time(qs_session_restore("/home/efs-mount/mark/session_efs.qs"))
+system.time(qs_session_restore("/ebs-local/session_ebs.qs"))
+```
+
+```{r qs_session_save}
+bench::mark(qs_session_restore("/home/efs-mount/mark/session_efs.qs"), iterations = 10)
+bench::mark(qs_session_restore("/ebs-local/session_ebs.qs"), iterations = 10)
+```

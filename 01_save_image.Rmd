@@ -1,0 +1,93 @@
+---
+title: Disk Benchmarks - save image
+output: html_document
+---
+
+## Simulate the user's environment
+
+Data set creation
+
+```{r read_config}
+source("config.R")
+source("globals.R")
+```
+
+```{r create_data}
+create_data(use_large_data)
+```
+
+How big is each dataframe in memory?
+
+```{r df_sizes}
+object.size(df1) / 1e6
+lobstr::obj_size(df1) / 1e6
+```
+
+## Simulated RSP/RSW session suspend
+
+Simulate the RSP/RSW session suspend with the `save.image()` function.
+
+### EFS
+
+```{r efs_write}
+filename <- "/home/efs-mount/mark/efs_image.RData"
+if (file.exists(filename)){
+  unlink(filename)
+}
+Sys.time()
+system.time(save.image(filename, compress = FALSE))
+Sys.time()
+round(file.size(filename)/(1024*1024*1024), 1) # to get bytes to GBytes
+```
+
+
+### EBS
+
+```{r ebs_write}
+filename <- "/ebs-local/ebs_image.RData"
+if (file.exists(filename)){
+  unlink(filename)
+}
+Sys.time()
+system.time(save.image(filename, compress = FALSE))
+Sys.time()
+round(file.size(filename)/(1024*1024*1024), 1) # to get bytes to GBytes
+```
+
+## Simulated RSP/RSW session resume
+
+### EFS
+
+```{r efs_restore}
+rm(list = ls())
+filename <- "/home/efs-mount/mark/efs_image.RData"
+Sys.time()
+system.time(load(filename))
+Sys.time()
+```
+
+Check that objects have loaded
+
+```{r efs_check}
+lobstr::obj_size(df1) / 1e6
+ls()
+unlink(filename)
+```
+
+### EBS
+
+```{r ebs_restore}
+rm(list = ls())
+filename <- "/ebs-local/ebs_image.RData"
+Sys.time()
+system.time(load(filename))
+Sys.time()
+```
+
+Check that objects have loaded
+
+```{r ebs_check}
+lobstr::obj_size(df1) / 1e6
+ls()
+unlink(filename)
+```

@@ -1,0 +1,81 @@
+---
+title: Create 1TB of data on EFS for testing
+output: html_document
+---
+
+  
+```{r globals}
+efs_root_path <- "/home/efs-mount/mark"
+```
+
+
+Start creating the dummy data
+  
+```{r make_df}
+make_df <- function(nrow, ncol) {
+  cbind(
+    as.data.frame(matrix(
+      runif(nrow * ncol), nrow = nrow, ncol = ncol
+    )),
+    rep(
+      'THIS IS A VERY LONG TEXT STRING TO TEST A THEORY ABOUT THE STRING CACHE THIS IS A VERY LONG TEXT STRING TO TEST A THEORY ABOUT THE STRING CACHE',
+      nrow
+    ),
+    rep(
+      'THIS IS A DIFFERENT VERY LONG TEXT STRING TO TEST A THEORY ABOUT THE STRING CACHE THIS IS A VERY LONG TEXT STRING TO TEST A THEORY ABOUT THE STRING CACHE',
+      nrow
+    )
+    
+  )
+  
+}
+```
+
+
+Figure out how much data to create
+
+```{r calc_rows}
+# This will give us a data set of about 103G when saved
+rows_needed <- round(500 * 1024 * 1024 / (8001904 / 100000) * 2.5)
+```
+
+
+Create the data
+
+```{r create_data}
+local({
+  df <- make_df(nrow = rows_needed, ncol = 3)
+  
+  for (i in 1:20) {
+    assign(paste0("df", i), df, envir = .GlobalEnv)
+  }
+})
+```
+
+
+Create multiple copies of the data on disk
+
+```{r iter_save}
+output_dir <- paste0(efs_root_path, "/1TB")
+
+if (!dir.exists(output_dir)){
+  dir.create(output_dir)
+}
+
+iters <- c(1:10)
+filenames <- glue::glue(output_dir, "/image_{iters}.Rdata")
+
+for(filename in filenames){
+  rlog::rlog_info(paste0("Writing file: ", filename))
+  save.image(filename, compress = FALSE)
+}
+```
+
+
+Check we have created all the files
+  
+```{r list_files}
+system(paste0("ls -lh ", efs_root_path, "/1TB"))
+```
+
+Fin.
