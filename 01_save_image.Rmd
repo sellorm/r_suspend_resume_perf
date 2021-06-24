@@ -89,7 +89,7 @@ Sys.time()
 Check that objects have loaded
 
 ```{r efs_check}
-lobstr::obj_size(df1) / 1e6
+object.size(df1) / 1e6
 ls()
 unlink(filename)
 ```
@@ -117,7 +117,7 @@ Sys.time()
 Check that objects have loaded
 
 ```{r ebs_check}
-lobstr::obj_size(df1) / 1e6
+object.size(df1) / 1e6
 ls()
 unlink(filename)
 ```
