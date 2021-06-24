@@ -1,11 +1,11 @@
 ---
-title: Disk Benchmarks - save image
+  title: Disk Benchmarks - save image compressed
 output: html_document
 ---
 
-## Simulate the user's environment
+  ## Simulate the user's environment
 
-Data set creation
+  Data set creation
 
 ```{r read_config}
 source("config.R")
@@ -13,12 +13,12 @@ source("globals.R")
 ```
 
 ```{r create_data}
-create_data(use_large_data)
+create_data(use_large_data, stringsAsFactors = TRUE)
 ```
 
 How big is each dataframe in memory?
 
-```{r df_sizes}
+  ```{r df_sizes}
 object.size(df1) / 1e6
 lobstr::obj_size(df1) / 1e6
 ```
@@ -40,7 +40,7 @@ if (file.exists(filename)){
   unlink(filename)
 }
 Sys.time()
-system.time(save.image(filename, compress = FALSE))
+system.time(save.image(filename, compress = TRUE))
 Sys.time()
 round(file.size(filename)/(1024*1024*1024), 1) # to get bytes to GBytes
 ```
@@ -59,7 +59,7 @@ if (file.exists(filename)){
   unlink(filename)
 }
 Sys.time()
-system.time(save.image(filename, compress = FALSE))
+system.time(save.image(filename, compress = TRUE))
 Sys.time()
 round(file.size(filename)/(1024*1024*1024), 1) # to get bytes to GBytes
 ```

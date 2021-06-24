@@ -1,5 +1,5 @@
 ---
-title: Disk Benchmarks - save image
+title: Disk Benchmarks - save image compressed
 output: html_document
 ---
 
@@ -40,7 +40,7 @@ if (file.exists(filename)){
   unlink(filename)
 }
 Sys.time()
-system.time(save.image(filename, compress = FALSE))
+system.time(save.image(filename, compress = TRUE))
 Sys.time()
 round(file.size(filename)/(1024*1024*1024), 1) # to get bytes to GBytes
 ```
@@ -59,7 +59,7 @@ if (file.exists(filename)){
   unlink(filename)
 }
 Sys.time()
-system.time(save.image(filename, compress = FALSE))
+system.time(save.image(filename, compress = TRUE))
 Sys.time()
 round(file.size(filename)/(1024*1024*1024), 1) # to get bytes to GBytes
 ```
