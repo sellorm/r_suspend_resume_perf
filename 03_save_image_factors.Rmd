@@ -1,11 +1,11 @@
 ---
-  title: Disk Benchmarks - save image compressed
+title: Disk Benchmarks - save image compressed
 output: html_document
 ---
 
-  ## Simulate the user's environment
+## Simulate the user's environment
 
-  Data set creation
+Data set creation
 
 ```{r read_config}
 source("config.R")
